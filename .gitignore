@@ -1,0 +1,63 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+dist/
+build/
+
+# Virtual Environment
+.venv/
+venv/
+ENV/
+env/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Models (quá lớn, không push lên git)
+Models/*.pkl
+Models/*.pb
+Models/*.ckpt*
+Models/*.meta
+Models/*.npy
+!Models/.gitkeep
+
+# Dataset (quá lớn, không push lên git)
+Dataset/FaceData/raw/
+Dataset/FaceData/processed/
+Dataset/**/*.jpg
+Dataset/**/*.png
+Dataset/**/*.jpeg
+
+# Logs
+*.log
+*.txt
+!requirements.txt
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Temporary files
+*.tmp
+*.bak
+*.swp
+a
+
+# Video files
+*.mp4
+*.avi
+*.mov
+
+# Backup files
+*_backup_*.pkl
+facemodel_backup_*.pkl
+

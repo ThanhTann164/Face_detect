@@ -45,6 +45,12 @@ def main(args):
     src_path,_ = os.path.split(os.path.realpath(__file__))
     facenet.store_revision_info(src_path, output_dir, ' '.join(sys.argv))
     dataset = facenet.get_dataset(args.input_dir)
+    if args.people:
+        wanted = set([name.strip().lower() for name in args.people if name.strip()])
+        dataset = [cls for cls in dataset if cls.name.lower() in wanted]
+        if not dataset:
+            print('Khong tim thay lop nao phu hop voi --people: {}'.format(args.people))
+            return
     
     print('Creating networks and loading parameters')
     
@@ -156,6 +162,8 @@ def parse_arguments(argv):
         help='Upper bound on the amount of GPU memory that will be used by the process.', default=1.0)
     parser.add_argument('--detect_multiple_faces', type=bool,
                         help='Detect and align multiple faces per image.', default=False)
+    parser.add_argument('--people', nargs='*',
+                        help='Chi align cac lop co ten nam trong danh sach nay (khong dau).')
     return parser.parse_args(argv)
 
 if __name__ == '__main__':
