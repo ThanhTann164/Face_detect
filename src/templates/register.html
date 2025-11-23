@@ -1,0 +1,580 @@
+{% extends "base.html" %}
+
+{% block title %}Đăng Ký Người Mới - Hệ Thống Nhận Diện{% endblock %}
+
+{% block extra_css %}
+<style>
+    .register-section {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 24px;
+        margin-top: 24px;
+    }
+
+    .camera-section {
+        grid-column: 1 / -1;
+    }
+
+    .upload-area {
+        border: 2px dashed var(--primary);
+        border-radius: 16px;
+        padding: 40px;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.3s;
+        background: var(--secondary);
+        margin-top: 20px;
+    }
+
+    .upload-area:hover {
+        background: #E0F7EA;
+        border-color: var(--primary-dark);
+    }
+
+    .upload-area.dragover {
+        background: #C8F0D8;
+        border-color: var(--primary-dark);
+    }
+
+    .person-list {
+        list-style: none;
+        padding: 0;
+        margin-top: 16px;
+        max-height: 300px;
+        overflow-y: auto;
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        background: var(--card-bg);
+    }
+
+    .person-list li {
+        padding: 12px 16px;
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        cursor: pointer;
+        transition: background 0.2s;
+    }
+
+    .person-list li:hover {
+        background: var(--secondary);
+    }
+
+    .person-list li:last-child {
+        border-bottom: none;
+    }
+
+    .person-count {
+        color: var(--primary);
+        font-weight: 600;
+    }
+
+    .status-text {
+        margin-top: 12px;
+        color: var(--text-secondary);
+        font-size: 0.95em;
+    }
+
+    .guide-box {
+        background: var(--secondary);
+        border-left: 4px solid var(--primary);
+        padding: 16px;
+        border-radius: 8px;
+        margin-bottom: 24px;
+    }
+
+    .guide-box h3 {
+        color: var(--primary-dark);
+        margin-bottom: 8px;
+    }
+
+    .guide-box ol {
+        margin-left: 20px;
+        color: var(--text-secondary);
+    }
+
+    .guide-box li {
+        margin-bottom: 8px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header">
+        <i class="fas fa-user-plus"></i>
+        <h2>Đăng Ký Người Mới</h2>
+    </div>
+
+    <!-- Hướng dẫn -->
+    <div class="guide-box">
+        <h3><i class="fas fa-info-circle"></i> Hướng dẫn đăng ký</h3>
+        <ol>
+            <li>Nhập User ID (tên người dùng, không dấu, ví dụ: tan, minh, nguyen_van_a)</li>
+            <li>Bật camera và đảm bảo ánh sáng đủ</li>
+            <li>Chụp ảnh hoặc chọn file ảnh từ máy tính</li>
+            <li>Click "Lưu Ảnh Vào Dataset" để lưu ảnh</li>
+            <li>Lặp lại bước 3-4 để thu thập nhiều ảnh (khuyến nghị: 50-100 ảnh)</li>
+            <li>Click "Align ảnh" để căn chỉnh khuôn mặt</li>
+            <li>Click "Train Người Này" để huấn luyện model</li>
+        </ol>
+    </div>
+
+    <!-- Input User ID -->
+    <div class="card" style="margin-bottom: 24px;">
+        <div class="input-group">
+            <label for="personName">
+                <i class="fas fa-id-card"></i> User ID (Tên người dùng)
+            </label>
+            <input type="text" id="personName" placeholder="Nhập User ID (ví dụ: tan, minh, nguyen_van_a)" 
+                   pattern="[a-z0-9_]+" title="Chỉ dùng chữ thường, số và dấu gạch dưới">
+        </div>
+    </div>
+
+    <!-- Camera Section -->
+    <div class="card camera-section">
+        <div class="card-header">
+            <i class="fas fa-camera"></i>
+            <h2>Chụp Ảnh Khuôn Mặt</h2>
+        </div>
+        
+        <div class="camera-container">
+            <video id="video" autoplay playsinline></video>
+            <canvas id="canvas"></canvas>
+        </div>
+
+        <div class="controls">
+            <button class="btn btn-primary" id="startCamera">
+                <i class="fas fa-play"></i> Bật Camera
+            </button>
+            <button class="btn btn-success" id="captureBtn" disabled>
+                <i class="fas fa-camera"></i> Chụp Ảnh
+            </button>
+            <button class="btn btn-danger" id="stopCamera" disabled>
+                <i class="fas fa-stop"></i> Tắt Camera
+            </button>
+        </div>
+
+        <div class="upload-area" id="uploadArea">
+            <i class="fas fa-cloud-upload-alt" style="font-size: 3em; color: var(--primary); margin-bottom: 16px;"></i>
+            <p style="font-weight: 600; margin-bottom: 8px;">Kéo thả ảnh vào đây để upload</p>
+            <p style="font-size: 0.9em; color: var(--text-secondary);">Hoặc click để chọn file</p>
+            <input type="file" id="fileInput" accept="image/*" style="display: none;">
+        </div>
+
+        <div class="input-group" style="margin-top: 20px;">
+            <label for="autoCaptureCount">Số ảnh muốn chụp tự động</label>
+            <input type="number" id="autoCaptureCount" value="100" min="10" max="500">
+        </div>
+
+        <div class="controls">
+            <button class="btn btn-primary" id="autoCaptureBtn">
+                <i class="fas fa-magic"></i> Tự động chụp & lưu
+            </button>
+            <button class="btn btn-danger" id="stopAutoCaptureBtn" disabled>
+                <i class="fas fa-stop-circle"></i> Dừng chụp
+            </button>
+        </div>
+
+        <p class="status-text" id="autoCaptureStatus">Chưa bắt đầu chụp tự động.</p>
+    </div>
+
+    <!-- Actions -->
+    <div class="card">
+        <div class="card-header">
+            <i class="fas fa-cogs"></i>
+            <h2>Thao Tác</h2>
+        </div>
+
+        <div class="controls">
+            <button class="btn btn-success" id="saveToDataset" disabled>
+                <i class="fas fa-save"></i> Lưu Ảnh Vào Dataset
+            </button>
+            <button class="btn btn-primary" id="alignPerson" disabled>
+                <i class="fas fa-align-center"></i> Align ảnh
+            </button>
+            <button class="btn btn-primary" id="trainPerson" disabled>
+                <i class="fas fa-brain"></i> Train Người Này
+            </button>
+            <button class="btn btn-warning" id="refreshPersons">
+                <i class="fas fa-sync"></i> Làm Mới Danh Sách
+            </button>
+        </div>
+    </div>
+
+    <!-- Person List -->
+    <div class="card">
+        <div class="card-header">
+            <i class="fas fa-users"></i>
+            <h2>Danh Sách Người Đã Đăng Ký</h2>
+        </div>
+        <ul id="personList" class="person-list">
+            <li style="justify-content: center; padding: 20px;">Đang tải...</li>
+        </ul>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    let stream = null;
+    let capturedImage = null;
+    let autoCaptureState = { running: false, target: 100, count: 0 };
+
+    const startCameraBtn = document.getElementById('startCamera');
+    const stopCameraBtn = document.getElementById('stopCamera');
+    const captureBtnEl = document.getElementById('captureBtn');
+    const personNameInput = document.getElementById('personName');
+    const saveToDatasetBtn = document.getElementById('saveToDataset');
+    const trainPersonBtn = document.getElementById('trainPerson');
+    const alignPersonBtn = document.getElementById('alignPerson');
+    const refreshPersonsBtn = document.getElementById('refreshPersons');
+    const personListEl = document.getElementById('personList');
+    const autoCaptureInput = document.getElementById('autoCaptureCount');
+    const autoCaptureBtn = document.getElementById('autoCaptureBtn');
+    const stopAutoCaptureBtn = document.getElementById('stopAutoCaptureBtn');
+    const autoCaptureStatus = document.getElementById('autoCaptureStatus');
+    const uploadArea = document.getElementById('uploadArea');
+    const fileInput = document.getElementById('fileInput');
+
+    // Initialize
+    loadPersons();
+    updateAutoCaptureUI();
+
+    // Event Listeners
+    startCameraBtn.addEventListener('click', startCamera);
+    stopCameraBtn.addEventListener('click', stopCamera);
+    captureBtnEl.addEventListener('click', captureImage);
+    personNameInput.addEventListener('input', updateSaveButtonState);
+    saveToDatasetBtn.addEventListener('click', saveToDataset);
+    alignPersonBtn.addEventListener('click', alignPerson);
+    trainPersonBtn.addEventListener('click', trainPerson);
+    refreshPersonsBtn.addEventListener('click', loadPersons);
+    autoCaptureBtn.addEventListener('click', startAutoCapture);
+    stopAutoCaptureBtn.addEventListener('click', stopAutoCapture);
+
+    // File upload
+    uploadArea.addEventListener('click', () => fileInput.click());
+    uploadArea.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        uploadArea.classList.add('dragover');
+    });
+    uploadArea.addEventListener('dragleave', () => {
+        uploadArea.classList.remove('dragover');
+    });
+    uploadArea.addEventListener('drop', (e) => {
+        e.preventDefault();
+        uploadArea.classList.remove('dragover');
+        const files = e.dataTransfer.files;
+        if (files.length > 0) {
+            handleFile(files[0]);
+        }
+    });
+    fileInput.addEventListener('change', (e) => {
+        if (e.target.files.length > 0) {
+            handleFile(e.target.files[0]);
+        }
+    });
+
+    function startCamera() {
+        navigator.mediaDevices.getUserMedia({ video: true })
+            .then(mediaStream => {
+                stream = mediaStream;
+                const video = document.getElementById('video');
+                video.srcObject = stream;
+                startCameraBtn.disabled = true;
+                captureBtnEl.disabled = false;
+                stopCameraBtn.disabled = false;
+            })
+            .catch(error => {
+                alert('Không thể truy cập camera. Vui lòng kiểm tra quyền truy cập.');
+            });
+    }
+
+    function stopCamera() {
+        if (stream) {
+            stream.getTracks().forEach(track => track.stop());
+            stream = null;
+            const video = document.getElementById('video');
+            video.srcObject = null;
+            startCameraBtn.disabled = false;
+            captureBtnEl.disabled = true;
+            stopCameraBtn.disabled = true;
+        }
+    }
+
+    function captureImage() {
+        const video = document.getElementById('video');
+        const canvas = document.getElementById('canvas');
+        const context = canvas.getContext('2d');
+
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        context.drawImage(video, 0, 0);
+
+        canvas.toBlob(blob => {
+            capturedImage = blob;
+            updateSaveButtonState();
+        }, 'image/jpeg', 0.95);
+    }
+
+    function captureFrameBlob() {
+        return new Promise((resolve, reject) => {
+            if (!stream) {
+                reject(new Error('Camera chưa bật'));
+                return;
+            }
+            const video = document.getElementById('video');
+            if (video.videoWidth === 0 || video.videoHeight === 0) {
+                reject(new Error('Camera chưa sẵn sàng'));
+                return;
+            }
+            const canvas = document.getElementById('canvas');
+            const context = canvas.getContext('2d');
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            context.drawImage(video, 0, 0);
+            canvas.toBlob(blob => {
+                if (blob) {
+                    resolve(blob);
+                } else {
+                    reject(new Error('Không thể tạo blob từ frame'));
+                }
+            }, 'image/jpeg', 0.95);
+        });
+    }
+
+    function handleFile(file) {
+        if (!file.type.startsWith('image/')) {
+            alert('Vui lòng chọn file ảnh!');
+            return;
+        }
+        capturedImage = file;
+        updateSaveButtonState();
+    }
+
+    function sanitizePersonName(value) {
+        if (!value) return '';
+        return value.trim().toLowerCase()
+            .replace(/\s+/g, '_')
+            .replace(/[^a-z0-9_]/g, '');
+    }
+
+    function updateSaveButtonState() {
+        const name = sanitizePersonName(personNameInput.value);
+        const hasImage = !!capturedImage;
+        saveToDatasetBtn.disabled = !(name && hasImage);
+        trainPersonBtn.disabled = !name;
+        alignPersonBtn.disabled = !name;
+    }
+
+    function saveToDataset() {
+        const name = sanitizePersonName(personNameInput.value);
+        if (!name) {
+            alert('Vui lòng nhập User ID hợp lệ!');
+            return;
+        }
+        if (!capturedImage) {
+            alert('Cần chụp hoặc chọn ảnh trước khi lưu!');
+            return;
+        }
+        saveToDatasetBtn.disabled = true;
+        saveToDatasetBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang lưu...';
+        
+        const formData = new FormData();
+        formData.append('name', name);
+        formData.append('file', capturedImage);
+        
+        fetch(`${API_BASE}/api/save_capture`, {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                alert(`Đã lưu ảnh mới vào ${data.person} (tổng ${data.raw_count} ảnh)`);
+                loadPersons();
+            } else {
+                alert(data.error || 'Không thể lưu ảnh');
+            }
+        })
+        .catch(error => {
+            alert(`Lỗi: ${error.message}`);
+        })
+        .finally(() => {
+            saveToDatasetBtn.disabled = false;
+            saveToDatasetBtn.innerHTML = '<i class="fas fa-save"></i> Lưu Ảnh Vào Dataset';
+        });
+    }
+
+    function alignPerson() {
+        const name = sanitizePersonName(personNameInput.value);
+        if (!name) {
+            alert('Vui lòng nhập User ID hợp lệ!');
+            return;
+        }
+        alignPersonBtn.disabled = true;
+        alignPersonBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang align...';
+        
+        fetch(`${API_BASE}/api/align_person`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('Align thành công! Bạn có thể train ngay.');
+                loadPersons();
+            } else {
+                alert(data.error || data.message || 'Align thất bại');
+            }
+        })
+        .catch(error => {
+            alert(`Lỗi: ${error.message}`);
+        })
+        .finally(() => {
+            alignPersonBtn.disabled = false;
+            alignPersonBtn.innerHTML = '<i class="fas fa-align-center"></i> Align ảnh';
+        });
+    }
+
+    function trainPerson() {
+        const name = sanitizePersonName(personNameInput.value);
+        if (!name) {
+            alert('Vui lòng nhập User ID hợp lệ!');
+            return;
+        }
+        const confirmTrain = confirm(`Bạn có chắc muốn train lại model với User ID "${name}"?\nQuá trình này có thể mất vài phút.`);
+        if (!confirmTrain) return;
+        
+        trainPersonBtn.disabled = true;
+        trainPersonBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang train...';
+        
+        fetch(`${API_BASE}/api/train_person`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('Train thành công! Restart server nếu cần để load model mới.');
+            } else {
+                alert(data.error || data.message || 'Train thất bại');
+            }
+        })
+        .catch(error => {
+            alert(`Lỗi: ${error.message}`);
+        })
+        .finally(() => {
+            trainPersonBtn.disabled = false;
+            trainPersonBtn.innerHTML = '<i class="fas fa-brain"></i> Train Người Này';
+        });
+    }
+
+    async function startAutoCapture() {
+        if (autoCaptureState.running) return;
+        const name = sanitizePersonName(personNameInput.value);
+        if (!name) {
+            alert('Vui lòng nhập User ID trước!');
+            return;
+        }
+        if (!stream) {
+            alert('Vui lòng bật camera trước khi chụp tự động!');
+            return;
+        }
+        const target = Math.min(Math.max(parseInt(autoCaptureInput.value, 10) || 100, 10), 500);
+        autoCaptureState = { running: true, target, count: 0, name };
+        updateAutoCaptureUI();
+        
+        while (autoCaptureState.running && autoCaptureState.count < autoCaptureState.target) {
+            try {
+                const blob = await captureFrameBlob();
+                const formData = new FormData();
+                formData.append('name', name);
+                formData.append('file', blob);
+                
+                const response = await fetch(`${API_BASE}/api/save_capture`, {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await response.json();
+                
+                if (data.status === 'success') {
+                    autoCaptureState.count += 1;
+                    autoCaptureStatus.textContent = `Đã lưu ${autoCaptureState.count}/${autoCaptureState.target} ảnh cho ${name}`;
+                    loadPersons();
+                }
+            } catch (error) {
+                console.error('Lỗi khi chụp tự động:', error);
+                break;
+            }
+            await sleep(600);
+        }
+        
+        if (autoCaptureState.count >= autoCaptureState.target) {
+            autoCaptureStatus.textContent = `Hoàn tất chụp ${autoCaptureState.target} ảnh cho ${name}`;
+        }
+        autoCaptureState.running = false;
+        updateAutoCaptureUI();
+    }
+
+    function stopAutoCapture() {
+        if (autoCaptureState.running) {
+            autoCaptureState.running = false;
+            updateAutoCaptureUI();
+        }
+    }
+
+    function updateAutoCaptureUI() {
+        if (autoCaptureState.running) {
+            autoCaptureBtn.disabled = true;
+            stopAutoCaptureBtn.disabled = false;
+            autoCaptureStatus.textContent = `Đang chụp... ${autoCaptureState.count}/${autoCaptureState.target}`;
+        } else {
+            autoCaptureBtn.disabled = false;
+            stopAutoCaptureBtn.disabled = true;
+            autoCaptureStatus.textContent = autoCaptureState.count > 0
+                ? `Đã lưu ${autoCaptureState.count} ảnh gần nhất.`
+                : 'Chưa bắt đầu chụp tự động.';
+        }
+    }
+
+    function sleep(ms) {
+        return new Promise(resolve => setTimeout(resolve, ms));
+    }
+
+    function loadPersons() {
+        fetch(`${API_BASE}/api/persons`)
+            .then(response => response.json())
+            .then(data => {
+                if (data && data.persons) {
+                    renderPersonList(data.persons);
+                }
+            })
+            .catch(() => {
+                renderPersonList([]);
+            });
+    }
+
+    function renderPersonList(persons) {
+        if (!persons || persons.length === 0) {
+            personListEl.innerHTML = '<li style="justify-content: center; padding: 20px;">Chưa có người nào trong dataset</li>';
+            return;
+        }
+        personListEl.innerHTML = '';
+        persons.forEach(person => {
+            const li = document.createElement('li');
+            li.innerHTML = `<span>${person.name}</span><span class="person-count">${person.raw_count} raw / ${person.processed_count} proc</span>`;
+            li.addEventListener('click', () => {
+                personNameInput.value = person.name;
+                updateSaveButtonState();
+            });
+            personListEl.appendChild(li);
+        });
+    }
+</script>
+{% endblock %}
+

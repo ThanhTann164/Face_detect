@@ -17,7 +17,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # Cấu hình MQTT
-MQTT_SERVER = "5867fe71cdee4ac0910debc62feddee7.s1.eu.hivemq.cloud"
+MQTT_SERVER = "7a28606d7a234d84a5035fa5e28698a3.s1.eu.hivemq.cloud"
 MQTT_PORT = 8883
 MQTT_USER = "nguyenluc0112"
 MQTT_PASSWORD = "buithanhTan@123"

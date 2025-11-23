@@ -1,0 +1,568 @@
+{% extends "base.html" %}
+
+{% block title %}Admin Quản Trị - Hệ Thống Nhận Diện{% endblock %}
+
+{% block extra_css %}
+<style>
+    .admin-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 24px;
+    }
+
+    .stat-card {
+        text-align: center;
+        padding: 24px;
+    }
+
+    .stat-value {
+        font-size: 3em;
+        font-weight: 700;
+        color: var(--primary);
+        margin: 16px 0;
+    }
+
+    .log-container {
+        background: #1F2937;
+        color: #1DB954;
+        padding: 16px;
+        border-radius: 12px;
+        font-family: 'Courier New', monospace;
+        font-size: 0.9em;
+        max-height: 300px;
+        overflow-y: auto;
+        border: 2px solid var(--primary);
+    }
+
+    .log-entry {
+        margin: 4px 0;
+        padding: 4px;
+    }
+
+    .log-entry.error {
+        color: #EF4444;
+    }
+
+    .log-entry.success {
+        color: #1DB954;
+    }
+
+    .log-entry.info {
+        color: #60A5FA;
+    }
+
+    .person-table {
+        width: 100%;
+    }
+
+    .delete-btn {
+        padding: 6px 12px;
+        font-size: 0.85em;
+    }
+
+    .status-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 12px;
+        border-radius: 12px;
+        font-size: 0.9em;
+        font-weight: 600;
+    }
+
+    .status-connected {
+        background: var(--secondary);
+        color: var(--primary-dark);
+    }
+
+    .status-disconnected {
+        background: #FEE2E2;
+        color: #DC2626;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Thống kê tổng quan -->
+<div class="admin-grid">
+    <div class="card stat-card">
+        <div class="card-header" style="justify-content: center; border-bottom: none;">
+            <i class="fas fa-users"></i>
+            <h2>Tổng Người Dùng</h2>
+        </div>
+        <div class="stat-value" id="totalUsers">0</div>
+    </div>
+
+    <div class="card stat-card">
+        <div class="card-header" style="justify-content: center; border-bottom: none;">
+            <i class="fas fa-check-circle"></i>
+            <h2>Tổng Lần Nhận Diện</h2>
+        </div>
+        <div class="stat-value" id="totalRecognitions">0</div>
+    </div>
+
+    <div class="card stat-card">
+        <div class="card-header" style="justify-content: center; border-bottom: none;">
+            <i class="fas fa-door-open"></i>
+            <h2>Trạng Thái Cửa</h2>
+        </div>
+        <div class="stat-value" id="doorStatus" style="font-size: 1.5em;">Chưa xác định</div>
+    </div>
+</div>
+
+<!-- Điều khiển cửa -->
+<div class="card">
+    <div class="card-header">
+        <i class="fas fa-door-open"></i>
+        <h2>Điều Khiển Cửa</h2>
+    </div>
+    <div class="controls">
+        <button class="btn btn-success" id="openDoorBtn">
+            <i class="fas fa-unlock"></i> Mở Cửa
+        </button>
+        <button class="btn btn-danger" id="closeDoorBtn">
+            <i class="fas fa-lock"></i> Đóng Cửa
+        </button>
+        <div class="status-badge" id="mqttStatus">
+            <span class="status-indicator status-offline"></span>
+            <span>Đang kiểm tra...</span>
+        </div>
+    </div>
+</div>
+
+<!-- Danh sách người dùng -->
+<div class="card">
+    <div class="card-header">
+        <i class="fas fa-list"></i>
+        <h2>Danh Sách Người Dùng</h2>
+    </div>
+    <div style="overflow-x: auto;">
+        <table class="table person-table">
+            <thead>
+                <tr>
+                    <th>User ID</th>
+                    <th>Ảnh Raw</th>
+                    <th>Ảnh Processed</th>
+                    <th>Thao Tác</th>
+                </tr>
+            </thead>
+            <tbody id="personTableBody">
+                <tr>
+                    <td colspan="4" style="text-align: center; padding: 40px;">Đang tải...</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Lịch sử ra vào -->
+<div class="card">
+    <div class="card-header">
+        <i class="fas fa-history"></i>
+        <h2>Lịch Sử Ra Vào</h2>
+    </div>
+    <div class="controls" style="margin-bottom: 20px;">
+        <div class="input-group" style="flex: 1; margin-bottom: 0;">
+            <label for="filterPerson">Lọc theo người:</label>
+            <select id="filterPerson">
+                <option value="">Tất cả</option>
+            </select>
+        </div>
+        <div class="input-group" style="flex: 1; margin-bottom: 0;">
+            <label for="limitHistory">Số lượng:</label>
+            <input type="number" id="limitHistory" value="50" min="10" max="500">
+        </div>
+        <button class="btn btn-primary" id="refreshHistory">
+            <i class="fas fa-sync"></i> Làm mới
+        </button>
+    </div>
+    <div style="overflow-x: auto;">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Thời gian</th>
+                    <th>Người</th>
+                    <th>Độ tin cậy</th>
+                    <th>Hành động</th>
+                    <th>Trạng thái</th>
+                </tr>
+            </thead>
+            <tbody id="historyTableBody">
+                <tr>
+                    <td colspan="5" style="text-align: center; padding: 20px;">Đang tải...</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+    <p class="status-text" id="historyStatus" style="margin-top: 12px;">Đang tải dữ liệu...</p>
+</div>
+
+<!-- Logs -->
+<div class="card">
+    <div class="card-header">
+        <i class="fas fa-terminal"></i>
+        <h2>Log Realtime</h2>
+    </div>
+    <div class="log-container" id="logContainer"></div>
+    <div class="controls" style="margin-top: 16px;">
+        <button class="btn btn-warning" id="clearLog">
+            <i class="fas fa-trash"></i> Xóa Log
+        </button>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    const openDoorBtn = document.getElementById('openDoorBtn');
+    const closeDoorBtn = document.getElementById('closeDoorBtn');
+    const mqttStatus = document.getElementById('mqttStatus');
+    const personTableBody = document.getElementById('personTableBody');
+    const filterPersonSelect = document.getElementById('filterPerson');
+    const limitHistoryInput = document.getElementById('limitHistory');
+    const refreshHistoryBtn = document.getElementById('refreshHistory');
+    const historyTableBody = document.getElementById('historyTableBody');
+    const historyStatus = document.getElementById('historyStatus');
+    const logContainer = document.getElementById('logContainer');
+    const clearLogBtn = document.getElementById('clearLog');
+    const totalUsersEl = document.getElementById('totalUsers');
+    const totalRecognitionsEl = document.getElementById('totalRecognitions');
+    const doorStatusEl = document.getElementById('doorStatus');
+
+    // Initialize
+    checkServerStatus();
+    loadPersons();
+    loadAccessHistory();
+    loadStats();
+    loadLogsFromServer();
+
+    // Auto refresh
+    setInterval(checkServerStatus, 5000);
+    setInterval(loadStats, 10000);
+    setInterval(loadLogsFromServer, 5000);
+    setInterval(loadAccessHistory, 30000);
+
+    // Event listeners
+    openDoorBtn.addEventListener('click', () => controlDoor('OPEN', openDoorBtn));
+    closeDoorBtn.addEventListener('click', () => controlDoor('CLOSE', closeDoorBtn));
+    refreshHistoryBtn.addEventListener('click', () => {
+        loadAccessHistory();
+        loadAccessStats();
+    });
+    filterPersonSelect.addEventListener('change', loadAccessHistory);
+    limitHistoryInput.addEventListener('change', loadAccessHistory);
+    clearLogBtn.addEventListener('click', clearLog);
+
+    function checkServerStatus() {
+        fetch(`${API_BASE}/api/stats`)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Failed to fetch stats');
+                }
+                return response.json();
+            })
+            .then(data => {
+                // Update MQTT status
+                const indicator = mqttStatus.querySelector('.status-indicator');
+                const text = mqttStatus.querySelector('span:last-child');
+                
+                // Kiểm tra mqtt_connected (có thể là true/false hoặc undefined)
+                const isConnected = data.mqtt_connected === true;
+                
+                if (isConnected) {
+                    indicator.className = 'status-indicator status-online';
+                    text.textContent = 'MQTT Đã kết nối';
+                    mqttStatus.className = 'status-badge status-connected';
+                } else {
+                    indicator.className = 'status-indicator status-offline';
+                    text.textContent = 'MQTT Chưa kết nối';
+                    mqttStatus.className = 'status-badge status-disconnected';
+                }
+            })
+            .catch(error => {
+                console.error('Error checking server status:', error);
+                const indicator = mqttStatus.querySelector('.status-indicator');
+                const text = mqttStatus.querySelector('span:last-child');
+                indicator.className = 'status-indicator status-offline';
+                text.textContent = 'MQTT Chưa kết nối';
+                mqttStatus.className = 'status-badge status-disconnected';
+            });
+    }
+
+    function controlDoor(command, triggerBtn) {
+        triggerBtn.disabled = true;
+        triggerBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang gửi...';
+        
+        fetch(`${API_BASE}/test_mqtt?cmd=${command}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    log(`Đã gửi lệnh ${command} đến ESP32`, 'success');
+                    setTimeout(() => loadStats(), 500);
+                } else {
+                    log(`Lỗi: ${data.message || 'Không rõ lỗi'}`, 'error');
+                }
+            })
+            .catch(error => {
+                log(`Lỗi kết nối: ${error.message}`, 'error');
+            })
+            .finally(() => {
+                triggerBtn.disabled = false;
+                triggerBtn.innerHTML = command === 'OPEN' 
+                    ? '<i class="fas fa-unlock"></i> Mở Cửa'
+                    : '<i class="fas fa-lock"></i> Đóng Cửa';
+            });
+    }
+
+    function loadStats() {
+        fetch(`${API_BASE}/api/stats`)
+            .then(response => response.json())
+            .then(data => {
+                totalRecognitionsEl.textContent = data.total || 0;
+                if (data.door_status) {
+                    doorStatusEl.textContent = data.door_status;
+                }
+                // Cập nhật MQTT status khi load stats
+                if (mqttStatus) {
+                    const indicator = mqttStatus.querySelector('.status-indicator');
+                    const text = mqttStatus.querySelector('span:last-child');
+                    const isConnected = data.mqtt_connected === true;
+                    
+                    if (isConnected) {
+                        indicator.className = 'status-indicator status-online';
+                        text.textContent = 'MQTT Đã kết nối';
+                        mqttStatus.className = 'status-badge status-connected';
+                    } else {
+                        indicator.className = 'status-indicator status-offline';
+                        text.textContent = 'MQTT Chưa kết nối';
+                        mqttStatus.className = 'status-badge status-disconnected';
+                    }
+                }
+            })
+            .catch(error => {
+                console.error('Lỗi tải stats:', error);
+            });
+    }
+
+    function loadPersons() {
+        fetch(`${API_BASE}/api/persons`)
+            .then(response => response.json())
+            .then(data => {
+                if (data && data.persons) {
+                    renderPersonTable(data.persons);
+                    totalUsersEl.textContent = data.persons.length;
+                }
+            })
+            .catch(() => {
+                personTableBody.innerHTML = '<tr><td colspan="4" style="text-align: center; padding: 20px;">Lỗi khi tải dữ liệu</td></tr>';
+            });
+    }
+
+    function renderPersonTable(persons) {
+        if (!persons || persons.length === 0) {
+            personTableBody.innerHTML = '<tr><td colspan="4" style="text-align: center; padding: 40px;">Chưa có người dùng nào</td></tr>';
+            return;
+        }
+
+        personTableBody.innerHTML = '';
+        persons.forEach(person => {
+            const tr = document.createElement('tr');
+            const deleteBtnId = `delete-btn-${person.name}`;
+            tr.innerHTML = `
+                <td><strong>${person.name}</strong></td>
+                <td>${person.raw_count || 0}</td>
+                <td>${person.processed_count || 0}</td>
+                <td>
+                    <button id="${deleteBtnId}" class="btn btn-danger delete-btn" onclick="deletePerson('${person.name}', '${deleteBtnId}')">
+                        <i class="fas fa-trash"></i> Xóa
+                    </button>
+                </td>
+            `;
+            personTableBody.appendChild(tr);
+        });
+    }
+
+    function deletePerson(name, btnId) {
+        if (!confirm(`Bạn có chắc muốn xóa người dùng "${name}"?\n\nHành động này sẽ:\n- Xóa tất cả ảnh raw và processed của người này\n- Không thể hoàn tác!`)) {
+            return;
+        }
+        
+        const retrain = confirm('Bạn có muốn retrain model sau khi xóa không?\n\nChọn OK để retrain (mất thời gian)\nChọn Cancel để chỉ xóa dữ liệu');
+        
+        // Disable button
+        const deleteBtn = document.getElementById(btnId);
+        if (deleteBtn) {
+            deleteBtn.disabled = true;
+            deleteBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang xóa...';
+        }
+        
+        fetch(`${API_BASE}/api/persons/${encodeURIComponent(name)}?retrain=${retrain}`, {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                log(`Đã xóa người dùng "${name}" thành công. ${data.deleted_files_count} files đã bị xóa.`, 'success');
+                // Reload danh sách người dùng
+                loadPersons();
+                // Reload stats
+                setTimeout(() => loadStats(), 500);
+            } else {
+                log(`Lỗi: ${data.message || 'Không rõ lỗi'}`, 'error');
+            }
+        })
+        .catch(error => {
+            log(`Lỗi kết nối: ${error.message}`, 'error');
+        })
+        .finally(() => {
+            // Re-enable button
+            if (deleteBtn) {
+                deleteBtn.disabled = false;
+                deleteBtn.innerHTML = '<i class="fas fa-trash"></i> Xóa';
+            }
+        });
+    }
+
+    function loadAccessHistory() {
+        const person = filterPersonSelect.value;
+        const limit = parseInt(limitHistoryInput.value) || 50;
+        
+        let url = `${API_BASE}/api/access_history?limit=${limit}`;
+        if (person) {
+            url += `&person=${encodeURIComponent(person)}`;
+        }
+        
+        fetch(url)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    renderHistoryTable(data.history || []);
+                    historyStatus.textContent = `Đã tải ${data.total} bản ghi`;
+                } else {
+                    historyStatus.textContent = `Lỗi: ${data.error || 'Không rõ'}`;
+                }
+            })
+            .catch(error => {
+                console.error('Error loading history:', error);
+                historyStatus.textContent = `Lỗi khi tải dữ liệu: ${error.message}`;
+            });
+    }
+
+    function loadAccessStats() {
+        fetch(`${API_BASE}/api/access_stats`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success && filterPersonSelect) {
+                    const currentValue = filterPersonSelect.value;
+                    filterPersonSelect.innerHTML = '<option value="">Tất cả</option>';
+                    if (data.stats) {
+                        data.stats.forEach(stat => {
+                            const option = document.createElement('option');
+                            option.value = stat.name;
+                            option.textContent = `${stat.name} (${stat.total_entries} lần)`;
+                            filterPersonSelect.appendChild(option);
+                        });
+                    }
+                    filterPersonSelect.value = currentValue;
+                }
+            })
+            .catch(error => {
+                console.error('Error loading stats:', error);
+            });
+    }
+
+    function renderHistoryTable(history) {
+        if (!history || history.length === 0) {
+            historyTableBody.innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 40px;">Chưa có lịch sử</td></tr>';
+            return;
+        }
+        
+        historyTableBody.innerHTML = '';
+        history.forEach(entry => {
+            const tr = document.createElement('tr');
+            const timestamp = entry.timestamp || '';
+            const personName = entry.person_name || 'Unknown';
+            const confidence = entry.confidence || 0;
+            const action = entry.action || 'enter';
+            const sent = entry.door_command_sent !== false;
+            
+            let timeStr = timestamp;
+            try {
+                const date = new Date(timestamp);
+                timeStr = date.toLocaleString('vi-VN');
+            } catch (e) {}
+            
+            const actionText = action === 'enter' ? 'Vào nhà' : 'Ra khỏi nhà';
+            const actionBadge = `<span class="badge badge-success">${actionText}</span>`;
+            const statusBadge = sent 
+                ? '<span class="badge badge-info">Đã gửi lệnh</span>'
+                : '<span class="badge badge-danger">Chưa gửi</span>';
+            
+            const confidencePercent = Math.round(confidence * 100);
+            
+            tr.innerHTML = `
+                <td>${timeStr}</td>
+                <td><strong>${personName}</strong></td>
+                <td>${confidencePercent}%</td>
+                <td>${actionBadge}</td>
+                <td>${statusBadge}</td>
+            `;
+            historyTableBody.appendChild(tr);
+        });
+    }
+
+    function loadLogsFromServer() {
+        fetch(`${API_BASE}/api/logs`)
+            .then(response => response.json())
+            .then(data => {
+                logContainer.innerHTML = '';
+                const logs = data.logs || [];
+                if (!logs.length) {
+                    const empty = document.createElement('div');
+                    empty.className = 'log-entry info';
+                    empty.textContent = 'Chưa có log nào.';
+                    logContainer.appendChild(empty);
+                    return;
+                }
+                logs.forEach(entry => {
+                    const item = document.createElement('div');
+                    const timeLabel = entry.timestamp ? new Date(entry.timestamp).toLocaleTimeString() : '';
+                    item.className = `log-entry ${entry.level || 'info'}`;
+                    item.textContent = timeLabel ? `[${timeLabel}] ${entry.message}` : entry.message;
+                    logContainer.appendChild(item);
+                });
+                logContainer.scrollTop = logContainer.scrollHeight;
+            })
+            .catch(error => {
+                console.error('Error loading logs:', error);
+            });
+    }
+
+    function log(message, type = 'info') {
+        const timestamp = new Date().toLocaleTimeString();
+        const entry = document.createElement('div');
+        entry.className = `log-entry ${type}`;
+        entry.textContent = `[${timestamp}] ${message}`;
+        logContainer.appendChild(entry);
+        logContainer.scrollTop = logContainer.scrollHeight;
+    }
+
+    function clearLog() {
+        fetch(`${API_BASE}/api/logs`, { method: 'DELETE' })
+            .then(() => {
+                logContainer.innerHTML = '';
+                loadLogsFromServer();
+            })
+            .catch(error => {
+                log(`Không thể xóa log: ${error.message}`, 'error');
+            });
+    }
+
+    // Load access stats on init
+    loadAccessStats();
+</script>
+{% endblock %}
+

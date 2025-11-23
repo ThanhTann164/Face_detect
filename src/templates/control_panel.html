@@ -4,6 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Control Panel - Nhận Diện Khuôn Mặt & Điều Khiển Cửa</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
     <style>
         * {
             margin: 0;
@@ -12,8 +15,8 @@
         }
 
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: 'Inter', 'Roboto', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #e8f9f1 0%, #ffffff 100%);
             min-height: 100vh;
             padding: 20px;
         }
@@ -22,13 +25,13 @@
             max-width: 1200px;
             margin: 0 auto;
             background: white;
-            border-radius: 20px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
             overflow: hidden;
         }
 
         .header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #27ae60 0%, #2ecc71 100%);
             color: white;
             padding: 30px;
             text-align: center;
@@ -51,15 +54,17 @@
         .section {
             margin-bottom: 30px;
             padding: 20px;
-            background: #f8f9fa;
-            border-radius: 10px;
-            border-left: 4px solid #667eea;
+            background: #ffffff;
+            border-radius: 12px;
+            border-left: 4px solid #2ecc71;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
         }
 
         .section h2 {
-            color: #667eea;
+            color: #27ae60;
             margin-bottom: 15px;
             font-size: 1.5em;
+            font-weight: 600;
         }
 
         .camera-container {
@@ -68,8 +73,10 @@
             max-width: 640px;
             margin: 20px auto;
             background: #000;
-            border-radius: 10px;
+            border-radius: 12px;
             overflow: hidden;
+            border: 3px solid #a8e6cf;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
         }
 
         #video {
@@ -112,17 +119,23 @@
             width: 110px;
             height: 70px;
             object-fit: cover;
-            border-radius: 8px;
-            border: 2px solid #e0e0e0;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+            border-radius: 12px;
+            border: 2px solid #a8e6cf;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+            transition: transform 0.2s;
+        }
+
+        .doorbell-gallery img:hover {
+            transform: scale(1.05);
         }
 
         .doorbell-history {
             margin-top: 15px;
             padding: 15px;
             background: #fff;
-            border-radius: 10px;
-            box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+            border: 1px solid #e0e0e0;
         }
 
         .btn {
@@ -136,24 +149,25 @@
         }
 
         .btn-primary {
-            background: #667eea;
+            background: #27ae60;
             color: white;
         }
 
         .btn-primary:hover {
-            background: #5568d3;
+            background: #2ecc71;
             transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+            box-shadow: 0 5px 15px rgba(46, 204, 113, 0.4);
         }
 
         .btn-success {
-            background: #28a745;
+            background: #27ae60;
             color: white;
         }
 
         .btn-success:hover {
-            background: #218838;
+            background: #2ecc71;
             transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(46, 204, 113, 0.4);
         }
 
         .btn-danger {
@@ -190,8 +204,8 @@
         }
 
         .result-success {
-            background: #d4edda;
-            border: 2px solid #28a745;
+            background: #d5f4e6;
+            border: 2px solid #27ae60;
             color: #155724;
         }
 
@@ -226,8 +240,8 @@
         }
 
         .status-online {
-            background: #28a745;
-            box-shadow: 0 0 10px #28a745;
+            background: #2ecc71;
+            box-shadow: 0 0 10px #2ecc71;
         }
 
         .status-offline {
@@ -235,23 +249,24 @@
         }
 
         .upload-area {
-            border: 2px dashed #667eea;
-            border-radius: 10px;
+            border: 2px dashed #2ecc71;
+            border-radius: 12px;
             padding: 40px;
             text-align: center;
             cursor: pointer;
             transition: all 0.3s;
             margin-top: 15px;
+            background: #f8fff9;
         }
 
         .upload-area:hover {
-            background: #f0f0f0;
-            border-color: #5568d3;
+            background: #e8f9f1;
+            border-color: #27ae60;
         }
 
         .upload-area.dragover {
-            background: #e7f3ff;
-            border-color: #28a745;
+            background: #d5f4e6;
+            border-color: #27ae60;
         }
 
         #fileInput {
@@ -260,14 +275,15 @@
 
         .log-container {
             background: #1e1e1e;
-            color: #00ff00;
+            color: #2ecc71;
             padding: 15px;
-            border-radius: 8px;
+            border-radius: 12px;
             font-family: 'Courier New', monospace;
             font-size: 0.9em;
             max-height: 200px;
             overflow-y: auto;
             margin-top: 15px;
+            border: 1px solid #27ae60;
         }
 
         .log-entry {
@@ -280,7 +296,7 @@
         }
 
         .log-entry.success {
-            color: #51cf66;
+            color: #2ecc71;
         }
 
         .log-entry.info {
@@ -297,14 +313,21 @@
         .stat-card {
             background: white;
             padding: 20px;
-            border-radius: 10px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
             text-align: center;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(0,0,0,0.12);
         }
 
         .stat-card h3 {
-            color: #667eea;
+            color: #27ae60;
             margin-bottom: 10px;
+            font-weight: 600;
         }
 
         .stat-value {
@@ -334,8 +357,31 @@
         .input-group input {
             padding: 10px;
             border: 1px solid #ccc;
-            border-radius: 6px;
+            border-radius: 8px;
             font-size: 1em;
+            transition: border-color 0.2s;
+        }
+
+        .input-group input:focus {
+            outline: none;
+            border-color: #2ecc71;
+            box-shadow: 0 0 0 3px rgba(46, 204, 113, 0.1);
+        }
+
+        select {
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            font-size: 1em;
+            background: white;
+            transition: border-color 0.2s;
+            cursor: pointer;
+        }
+
+        select:focus {
+            outline: none;
+            border-color: #2ecc71;
+            box-shadow: 0 0 0 3px rgba(46, 204, 113, 0.1);
         }
 
         .person-list-container {
@@ -349,8 +395,9 @@
             max-height: 220px;
             overflow-y: auto;
             border: 1px solid #e5e5e5;
-            border-radius: 10px;
+            border-radius: 12px;
             background: white;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
         }
 
         .person-list li {
@@ -360,6 +407,12 @@
             justify-content: space-between;
             align-items: center;
             font-size: 0.95em;
+            transition: background 0.2s;
+            cursor: pointer;
+        }
+
+        .person-list li:hover {
+            background: #f0f9f4;
         }
 
         .person-list li:last-child {
@@ -367,7 +420,7 @@
         }
 
         .person-count {
-            color: #667eea;
+            color: #27ae60;
             font-weight: 600;
         }
 
@@ -391,15 +444,111 @@
 
         .nav-tabs a:hover {
             background: rgba(255,255,255,0.35);
+            transform: translateY(-2px);
         }
 
         .nav-tabs a.active {
             background: white;
-            color: #764ba2;
+            color: #27ae60;
         }
 
         .hidden-section {
             display: none !important;
+        }
+
+        /* History Table Styles */
+        .history-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+            border: 1px solid #e0e0e0;
+        }
+
+        .history-table thead {
+            background: linear-gradient(135deg, #27ae60 0%, #2ecc71 100%);
+            color: white;
+        }
+
+        .history-table th {
+            padding: 15px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 0.95em;
+        }
+
+        .history-table td {
+            padding: 12px 15px;
+            border-bottom: 1px solid #f1f1f1;
+            font-size: 0.9em;
+        }
+
+        .history-table tbody tr {
+            transition: background 0.2s;
+        }
+
+        .history-table tbody tr:hover {
+            background: #f0f9f4;
+        }
+
+        .history-table tbody tr:last-child td {
+            border-bottom: none;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 0.85em;
+            font-weight: 600;
+        }
+
+        .badge-success {
+            background: #d5f4e6;
+            color: #155724;
+            border: 1px solid #27ae60;
+        }
+
+        .badge-info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #2ecc71;
+        }
+
+        .badge-warning {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .confidence-bar {
+            display: inline-block;
+            width: 60px;
+            height: 8px;
+            background: #e0e0e0;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-left: 8px;
+            vertical-align: middle;
+        }
+
+        .confidence-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #27ae60, #2ecc71);
+            transition: width 0.3s;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #999;
+        }
+
+        .empty-state-icon {
+            font-size: 4em;
+            margin-bottom: 15px;
         }
 
     </style>
@@ -418,6 +567,7 @@
                 <a href="/capture" data-nav="capture" class="{{ 'active' if mode == 'capture' else '' }}">📚 Thu thập dữ liệu</a>
                 <a href="/auto-door" data-nav="auto" class="{{ 'active' if mode == 'auto' else '' }}">🤖 Mở cửa tự động</a>
                 <a href="/manual-control" data-nav="manual" class="{{ 'active' if mode == 'manual' else '' }}">🕹️ Điều khiển thủ công</a>
+                <a href="/access-history" data-nav="history" class="{{ 'active' if mode == 'history' else '' }}">📋 Lịch sử ra vào</a>
             </div>
         </div>
 
@@ -560,6 +710,63 @@
                 <button class="btn btn-warning" id="clearLog" style="margin-top: 10px;">Xóa Log</button>
             </div>
             {% endif %}
+
+            <!-- Section: Access History -->
+            {% if mode == 'history' %}
+            <div class="section">
+                <h2>📋 Lịch Sử Ra Vào Nhà</h2>
+                <div class="controls" style="margin-bottom: 20px;">
+                    <div class="input-group" style="flex: 1;">
+                        <label for="filterPerson">Lọc theo người:</label>
+                        <select id="filterPerson">
+                            <option value="">Tất cả</option>
+                        </select>
+                    </div>
+                    <div class="input-group" style="flex: 1;">
+                        <label for="limitHistory">Số lượng hiển thị:</label>
+                        <input type="number" id="limitHistory" value="50" min="10" max="500" style="padding: 8px; border-radius: 5px; border: 1px solid #ddd;">
+                    </div>
+                    <button class="btn btn-primary" id="refreshHistory">🔄 Làm mới</button>
+                </div>
+                
+                <div class="section">
+                    <h3>📊 Thống Kê</h3>
+                    <div class="grid" id="accessStatsGrid">
+                        <div class="stat-card">
+                            <h3>Tổng số lần vào</h3>
+                            <div class="stat-value" id="totalEntries">0</div>
+                        </div>
+                        <div class="stat-card">
+                            <h3>Số người</h3>
+                            <div class="stat-value" id="totalPeople">0</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="section" style="margin-top: 20px;">
+                    <h3>📝 Chi Tiết Lịch Sử</h3>
+                    <div id="historyTableContainer" style="overflow-x: auto;">
+                        <table class="history-table" id="historyTable">
+                            <thead>
+                                <tr>
+                                    <th>Thời gian</th>
+                                    <th>Người</th>
+                                    <th>Độ tin cậy</th>
+                                    <th>Hành động</th>
+                                    <th>Trạng thái</th>
+                                </tr>
+                            </thead>
+                            <tbody id="historyTableBody">
+                                <tr>
+                                    <td colspan="5" style="text-align: center; padding: 20px;">Đang tải...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <p class="status-text" id="historyStatus">Đang tải dữ liệu...</p>
+                </div>
+            </div>
+            {% endif %}
         </div>
     </div>
 
@@ -601,16 +808,21 @@
 
         // Initialize
         checkServerStatus();
-        setInterval(checkServerStatus, 5000);
+        // Giam polling frequency de giam tai server
+        setInterval(checkServerStatus, 10000);
         if (personListEl) {
             loadPersons();
-            setInterval(loadPersons, 20000);
+            // Chi load persons khi can, khong can poll lien tuc
+            // setInterval(loadPersons, 20000); // Comment out de giam request
         }
         updateAutoCaptureUI();
 
         if (pageMode === 'manual') {
             refreshManualPanels();
-            setInterval(refreshManualPanels, 5000);
+            // Giam polling frequency tu 5s xuong 10s de giam tai server
+            setInterval(refreshManualPanels, 10000);
+            // Tai trang thai cua ngay khi vao trang
+            loadDoorStatus();
         }
 
         // Camera controls
@@ -978,14 +1190,28 @@
                 triggerBtn.disabled = true;
                 triggerBtn.textContent = 'Đang gửi...';
             }
+            
             fetch(`${API_BASE}/test_mqtt?cmd=${command}`)
-                .then(response => response.json())
+                .then(response => {
+                    // Kiểm tra status code trước khi parse JSON
+                    if (!response.ok) {
+                        return response.json().then(data => {
+                            throw new Error(data.message || `HTTP ${response.status}`);
+                        }).catch(() => {
+                            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                        });
+                    }
+                    return response.json();
+                })
                 .then(data => {
                     if (data.status === 'success') {
                         log(`Đã gửi lệnh ${command} đến ESP32`, 'success');
-                        updateDoorStatus(command === 'OPEN' ? 'Mở' : 'Đóng');
+                        // Reload trang thai cua tu server sau khi gui lenh thanh cong
+                        setTimeout(() => {
+                            loadDoorStatus();
+                        }, 500); // Doi 500ms de server cap nhat trang thai
                     } else {
-                        log(`Lỗi: ${data.message}`, 'error');
+                        log(`Lỗi: ${data.message || 'Không rõ lỗi'}`, 'error');
                     }
                     if (triggerBtn) {
                         triggerBtn.disabled = false;
@@ -1006,6 +1232,44 @@
             if (doorStatusEl) {
                 doorStatusEl.textContent = status;
             }
+            // Cap nhat nut dong/mo dua tren trang thai
+            updateDoorButtons(status);
+        }
+
+        function updateDoorButtons(status) {
+            const openBtn = document.getElementById('openDoorBtn');
+            const closeBtn = document.getElementById('closeDoorBtn');
+            
+            if (!openBtn || !closeBtn) return;
+            
+            // An/hien nut dua tren trang thai cua
+            if (status === 'Đang mở' || status === 'Mở') {
+                // Cua dang mo -> an nut "Mo Cua", hien nut "Dong Cua"
+                openBtn.style.display = 'none';
+                closeBtn.style.display = 'inline-block';
+            } else if (status === 'Đang đóng' || status === 'Đóng') {
+                // Cua dang dong -> hien nut "Mo Cua", an nut "Dong Cua"
+                openBtn.style.display = 'inline-block';
+                closeBtn.style.display = 'none';
+            } else {
+                // Chua xac dinh -> hien ca 2 nut
+                openBtn.style.display = 'inline-block';
+                closeBtn.style.display = 'inline-block';
+            }
+        }
+
+        function loadDoorStatus() {
+            // Tai trang thai cua tu server
+            fetch(`${API_BASE}/api/stats`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.door_status) {
+                        updateDoorStatus(data.door_status);
+                    }
+                })
+                .catch(error => {
+                    console.error('Loi khi tai trang thai cua:', error);
+                });
         }
 
         function updateStats() {
@@ -1284,6 +1548,178 @@
                 });
                 personListEl.appendChild(li);
             });
+        }
+
+        // Access History Functions
+        const refreshHistoryBtn = document.getElementById('refreshHistory');
+        const filterPersonSelect = document.getElementById('filterPerson');
+        const limitHistoryInput = document.getElementById('limitHistory');
+        const historyTableBody = document.getElementById('historyTableBody');
+        const historyStatus = document.getElementById('historyStatus');
+        const totalEntriesEl = document.getElementById('totalEntries');
+        const totalPeopleEl = document.getElementById('totalPeople');
+
+        function loadAccessHistory() {
+            if (pageMode !== 'history') return;
+            
+            const person = filterPersonSelect ? filterPersonSelect.value : '';
+            const limit = limitHistoryInput ? parseInt(limitHistoryInput.value) || 50 : 50;
+            
+            if (historyStatus) {
+                historyStatus.textContent = 'Đang tải dữ liệu...';
+            }
+            
+            let url = `${API_BASE}/api/access_history?limit=${limit}`;
+            if (person) {
+                url += `&person=${encodeURIComponent(person)}`;
+            }
+            
+            fetch(url)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        renderHistoryTable(data.history || []);
+                        if (historyStatus) {
+                            historyStatus.textContent = `Đã tải ${data.total} bản ghi`;
+                        }
+                    } else {
+                        if (historyStatus) {
+                            historyStatus.textContent = `Lỗi: ${data.error || 'Không rõ'}`;
+                        }
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading history:', error);
+                    if (historyStatus) {
+                        historyStatus.textContent = `Lỗi khi tải dữ liệu: ${error.message}`;
+                    }
+                    if (historyTableBody) {
+                        historyTableBody.innerHTML = '<tr><td colspan="5" class="empty-state">Lỗi khi tải dữ liệu</td></tr>';
+                    }
+                });
+        }
+
+        function loadAccessStats() {
+            if (pageMode !== 'history') return;
+            
+            fetch(`${API_BASE}/api/access_stats`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        if (totalEntriesEl) {
+                            totalEntriesEl.textContent = data.total_entries || 0;
+                        }
+                        if (totalPeopleEl) {
+                            totalPeopleEl.textContent = data.total_people || 0;
+                        }
+                        
+                        // Cập nhật dropdown filter
+                        if (filterPersonSelect && data.stats) {
+                            const currentValue = filterPersonSelect.value;
+                            filterPersonSelect.innerHTML = '<option value="">Tất cả</option>';
+                            data.stats.forEach(stat => {
+                                const option = document.createElement('option');
+                                option.value = stat.name;
+                                option.textContent = `${stat.name} (${stat.total_entries} lần)`;
+                                filterPersonSelect.appendChild(option);
+                            });
+                            filterPersonSelect.value = currentValue;
+                        }
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading stats:', error);
+                });
+        }
+
+        function renderHistoryTable(history) {
+            if (!historyTableBody) return;
+            
+            if (!history || history.length === 0) {
+                historyTableBody.innerHTML = `
+                    <tr>
+                        <td colspan="5" class="empty-state">
+                            <div class="empty-state-icon">📭</div>
+                            <div>Chưa có lịch sử ra vào</div>
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+            
+            historyTableBody.innerHTML = '';
+            history.forEach(entry => {
+                const tr = document.createElement('tr');
+                const timestamp = entry.timestamp || '';
+                const personName = entry.person_name || 'Unknown';
+                const confidence = entry.confidence || 0;
+                const action = entry.action || 'enter';
+                const sent = entry.door_command_sent !== false;
+                
+                // Format timestamp
+                let timeStr = timestamp;
+                try {
+                    const date = new Date(timestamp);
+                    timeStr = date.toLocaleString('vi-VN', {
+                        year: 'numeric',
+                        month: '2-digit',
+                        day: '2-digit',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        second: '2-digit'
+                    });
+                } catch (e) {
+                    timeStr = timestamp;
+                }
+                
+                // Action badge
+                const actionText = action === 'enter' ? 'Vào nhà' : 'Ra khỏi nhà';
+                const actionBadge = `<span class="badge badge-success">${actionText}</span>`;
+                
+                // Status badge
+                const statusBadge = sent 
+                    ? '<span class="badge badge-info">Đã gửi lệnh</span>'
+                    : '<span class="badge badge-warning">Chưa gửi</span>';
+                
+                // Confidence bar
+                const confidencePercent = Math.round(confidence * 100);
+                const confidenceBar = `
+                    <span>${confidencePercent}%</span>
+                    <div class="confidence-bar">
+                        <div class="confidence-fill" style="width: ${confidencePercent}%"></div>
+                    </div>
+                `;
+                
+                tr.innerHTML = `
+                    <td>${timeStr}</td>
+                    <td><strong>${personName}</strong></td>
+                    <td style="white-space: nowrap;">${confidenceBar}</td>
+                    <td>${actionBadge}</td>
+                    <td>${statusBadge}</td>
+                `;
+                historyTableBody.appendChild(tr);
+            });
+        }
+
+        // Initialize history page
+        if (pageMode === 'history') {
+            loadAccessStats();
+            loadAccessHistory();
+            
+            // Auto refresh every 60 seconds (giam tai server)
+            setInterval(() => {
+                loadAccessStats();
+                loadAccessHistory();
+            }, 60000);
+            
+            // Event listeners
+            refreshHistoryBtn && refreshHistoryBtn.addEventListener('click', () => {
+                loadAccessStats();
+                loadAccessHistory();
+            });
+            
+            filterPersonSelect && filterPersonSelect.addEventListener('change', loadAccessHistory);
+            limitHistoryInput && limitHistoryInput.addEventListener('change', loadAccessHistory);
         }
     </script>
 </body>

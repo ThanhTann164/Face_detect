@@ -1,0 +1,423 @@
+{% extends "base.html" %}
+
+{% block title %}Quét / Xác Thực - Hệ Thống Nhận Diện{% endblock %}
+
+{% block extra_css %}
+<style>
+    .scan-layout {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 24px;
+    }
+
+    .camera-section {
+        grid-column: 1 / -1;
+    }
+
+    .result-section {
+        min-height: 400px;
+    }
+
+    .result-display {
+        text-align: center;
+        padding: 40px;
+        border-radius: 16px;
+        margin-top: 24px;
+    }
+
+    .result-match {
+        background: var(--secondary);
+        border: 3px solid var(--primary);
+    }
+
+    .result-not-match {
+        background: #FEE2E2;
+        border: 3px solid #EF4444;
+    }
+
+    .result-icon {
+        font-size: 5em;
+        margin-bottom: 20px;
+    }
+
+    .result-name {
+        font-size: 2em;
+        font-weight: 700;
+        margin-bottom: 12px;
+    }
+
+    .result-confidence {
+        font-size: 1.5em;
+        color: var(--text-secondary);
+        margin-bottom: 20px;
+    }
+
+    .confidence-bar-container {
+        width: 100%;
+        height: 20px;
+        background: var(--border);
+        border-radius: 10px;
+        overflow: hidden;
+        margin: 20px 0;
+    }
+
+    .confidence-bar-fill {
+        height: 100%;
+        background: linear-gradient(90deg, var(--primary), var(--primary-dark));
+        transition: width 0.5s;
+        border-radius: 10px;
+    }
+
+    .scan-history {
+        max-height: 300px;
+        overflow-y: auto;
+        margin-top: 20px;
+    }
+
+    .scan-history-item {
+        padding: 12px;
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .scan-history-item:last-child {
+        border-bottom: none;
+    }
+
+    .timestamp {
+        color: var(--text-secondary);
+        font-size: 0.9em;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="card camera-section">
+    <div class="card-header">
+        <i class="fas fa-camera"></i>
+        <h2>Camera Quét</h2>
+    </div>
+    
+    <div class="camera-container">
+        <video id="video" autoplay playsinline></video>
+        <canvas id="canvas"></canvas>
+    </div>
+
+    <div class="controls">
+        <button class="btn btn-primary" id="startCamera">
+            <i class="fas fa-play"></i> Bật Camera
+        </button>
+        <button class="btn btn-success" id="scanBtn" disabled>
+            <i class="fas fa-search"></i> Quét Ngay
+        </button>
+        <button class="btn btn-danger" id="stopCamera" disabled>
+            <i class="fas fa-stop"></i> Tắt Camera
+        </button>
+        <button class="btn btn-warning" id="doorbellBtn" disabled>
+            <i class="fas fa-bell"></i> Giả lập Chuông Cửa
+        </button>
+    </div>
+
+    <div class="input-group" style="margin-top: 20px;">
+        <label for="doorbellShots">Số ảnh chụp khi khách bấm chuông (5-10)</label>
+        <input type="number" id="doorbellShots" value="6" min="3" max="10">
+    </div>
+</div>
+
+<div class="scan-layout">
+    <!-- Kết quả quét -->
+    <div class="card result-section">
+        <div class="card-header">
+            <i class="fas fa-check-circle"></i>
+            <h2>Kết Quả Quét</h2>
+        </div>
+
+        <div id="resultDisplay" class="result-display" style="display: none;">
+            <div class="result-icon" id="resultIcon"></div>
+            <div class="result-name" id="resultName"></div>
+            <div class="result-confidence" id="resultConfidence"></div>
+            <div class="confidence-bar-container">
+                <div class="confidence-bar-fill" id="confidenceBar"></div>
+            </div>
+            <div class="timestamp" id="resultTimestamp"></div>
+            <div style="margin-top: 24px;">
+                <button class="btn btn-success" id="requestDoorBtn" style="display: none;">
+                    <i class="fas fa-door-open"></i> Yêu Cầu Mở Cửa
+                </button>
+            </div>
+        </div>
+
+        <div id="noResultDisplay" style="text-align: center; padding: 60px 20px; color: var(--text-secondary);">
+            <i class="fas fa-search" style="font-size: 4em; margin-bottom: 20px; opacity: 0.3;"></i>
+            <p style="font-size: 1.2em;">Chưa có kết quả quét</p>
+            <p>Bật camera và click "Quét Ngay" để bắt đầu</p>
+        </div>
+    </div>
+
+    <!-- Lịch sử quét -->
+    <div class="card">
+        <div class="card-header">
+            <i class="fas fa-history"></i>
+            <h2>Lịch Sử Quét</h2>
+        </div>
+        <div class="scan-history" id="scanHistory">
+            <div style="text-align: center; padding: 40px; color: var(--text-secondary);">
+                Chưa có lịch sử
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    let stream = null;
+    let capturedImage = null;
+    let scanHistory = [];
+
+    const startCameraBtn = document.getElementById('startCamera');
+    const stopCameraBtn = document.getElementById('stopCamera');
+    const scanBtn = document.getElementById('scanBtn');
+    const doorbellBtn = document.getElementById('doorbellBtn');
+    const doorbellShotsInput = document.getElementById('doorbellShots');
+    const resultDisplay = document.getElementById('resultDisplay');
+    const noResultDisplay = document.getElementById('noResultDisplay');
+    const resultIcon = document.getElementById('resultIcon');
+    const resultName = document.getElementById('resultName');
+    const resultConfidence = document.getElementById('resultConfidence');
+    const confidenceBar = document.getElementById('confidenceBar');
+    const resultTimestamp = document.getElementById('resultTimestamp');
+    const requestDoorBtn = document.getElementById('requestDoorBtn');
+    const scanHistoryEl = document.getElementById('scanHistory');
+
+    startCameraBtn.addEventListener('click', startCamera);
+    stopCameraBtn.addEventListener('click', stopCamera);
+    scanBtn.addEventListener('click', scanFace);
+    doorbellBtn.addEventListener('click', handleDoorbellEvent);
+    requestDoorBtn.addEventListener('click', requestDoor);
+
+    function startCamera() {
+        navigator.mediaDevices.getUserMedia({ video: true })
+            .then(mediaStream => {
+                stream = mediaStream;
+                const video = document.getElementById('video');
+                video.srcObject = stream;
+                startCameraBtn.disabled = true;
+                scanBtn.disabled = false;
+                stopCameraBtn.disabled = false;
+                doorbellBtn.disabled = false;
+            })
+            .catch(error => {
+                alert('Không thể truy cập camera. Vui lòng kiểm tra quyền truy cập.');
+            });
+    }
+
+    function stopCamera() {
+        if (stream) {
+            stream.getTracks().forEach(track => track.stop());
+            stream = null;
+            const video = document.getElementById('video');
+            video.srcObject = null;
+            startCameraBtn.disabled = false;
+            scanBtn.disabled = true;
+            stopCameraBtn.disabled = true;
+            doorbellBtn.disabled = true;
+        }
+    }
+
+    function captureFrameBlob() {
+        return new Promise((resolve, reject) => {
+            if (!stream) {
+                reject(new Error('Camera chưa bật'));
+                return;
+            }
+            const video = document.getElementById('video');
+            if (video.videoWidth === 0 || video.videoHeight === 0) {
+                reject(new Error('Camera chưa sẵn sàng'));
+                return;
+            }
+            const canvas = document.getElementById('canvas');
+            const context = canvas.getContext('2d');
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            context.drawImage(video, 0, 0);
+            canvas.toBlob(blob => {
+                if (blob) {
+                    resolve(blob);
+                } else {
+                    reject(new Error('Không thể tạo blob từ frame'));
+                }
+            }, 'image/jpeg', 0.95);
+        });
+    }
+
+    function scanFace() {
+        if (!stream) {
+            alert('Vui lòng bật camera trước!');
+            return;
+        }
+
+        scanBtn.disabled = true;
+        scanBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang quét...';
+
+        captureFrameBlob()
+            .then(blob => {
+                return recognizeBlob(blob);
+            })
+            .then(result => {
+                displayResult(result);
+                addToHistory(result);
+            })
+            .catch(error => {
+                alert(`Lỗi: ${error.message}`);
+            })
+            .finally(() => {
+                scanBtn.disabled = false;
+                scanBtn.innerHTML = '<i class="fas fa-search"></i> Quét Ngay';
+            });
+    }
+
+    function recognizeBlob(blob) {
+        const formData = new FormData();
+        formData.append('file', blob);
+        return fetch(`${API_BASE}/upload`, {
+            method: 'POST',
+            body: formData
+        }).then(response => response.json());
+    }
+
+    function displayResult(result) {
+        const isMatch = result.name && result.name !== 'Unknown' && result.probability > 0.8;
+        const confidence = (result.probability || 0) * 100;
+        const timestamp = new Date().toLocaleString('vi-VN');
+
+        resultDisplay.style.display = 'block';
+        noResultDisplay.style.display = 'none';
+
+        if (isMatch) {
+            resultDisplay.className = 'result-display result-match';
+            resultIcon.className = 'result-icon fas fa-check-circle';
+            resultIcon.style.color = 'var(--primary)';
+            resultName.textContent = result.name;
+            resultName.style.color = 'var(--primary-dark)';
+            requestDoorBtn.style.display = 'inline-flex';
+        } else {
+            resultDisplay.className = 'result-display result-not-match';
+            resultIcon.className = 'result-icon fas fa-times-circle';
+            resultIcon.style.color = '#EF4444';
+            resultName.textContent = result.name === 'Unknown' ? 'Không nhận diện được' : result.name;
+            resultName.style.color = '#DC2626';
+            requestDoorBtn.style.display = 'none';
+        }
+
+        resultConfidence.textContent = `Độ tin cậy: ${confidence.toFixed(1)}%`;
+        confidenceBar.style.width = `${confidence}%`;
+        resultTimestamp.textContent = `Thời gian: ${timestamp}`;
+    }
+
+    function addToHistory(result) {
+        scanHistory.unshift({
+            ...result,
+            timestamp: new Date().toLocaleString('vi-VN')
+        });
+        if (scanHistory.length > 10) {
+            scanHistory.pop();
+        }
+        renderHistory();
+    }
+
+    function renderHistory() {
+        if (scanHistory.length === 0) {
+            scanHistoryEl.innerHTML = '<div style="text-align: center; padding: 40px; color: var(--text-secondary);">Chưa có lịch sử</div>';
+            return;
+        }
+
+        scanHistoryEl.innerHTML = '';
+        scanHistory.forEach(item => {
+            const isMatch = item.name && item.name !== 'Unknown' && item.probability > 0.8;
+            const div = document.createElement('div');
+            div.className = 'scan-history-item';
+            div.innerHTML = `
+                <div>
+                    <div style="font-weight: 600; color: ${isMatch ? 'var(--primary)' : '#EF4444'};">
+                        ${item.name === 'Unknown' ? 'Không nhận diện' : item.name}
+                    </div>
+                    <div class="timestamp">${item.timestamp}</div>
+                </div>
+                <div>
+                    <span class="badge ${isMatch ? 'badge-success' : 'badge-danger'}">
+                        ${(item.probability * 100).toFixed(1)}%
+                    </span>
+                </div>
+            `;
+            scanHistoryEl.appendChild(div);
+        });
+    }
+
+    async function handleDoorbellEvent() {
+        if (!stream) {
+            alert('Vui lòng bật camera trước!');
+            return;
+        }
+        const shots = Math.min(Math.max(parseInt(doorbellShotsInput.value, 10) || 6, 5), 10);
+        doorbellBtn.disabled = true;
+        doorbellBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang xử lý...';
+
+        const results = [];
+        for (let i = 0; i < shots; i++) {
+            try {
+                const blob = await captureFrameBlob();
+                const result = await recognizeBlob(blob);
+                results.push(result);
+                await sleep(250);
+            } catch (error) {
+                console.error(`Lỗi frame ${i + 1}:`, error);
+            }
+        }
+
+        const best = results
+            .filter(r => r && !r.error)
+            .sort((a, b) => (b.probability || 0) - (a.probability || 0))[0];
+
+        if (best && best.name && best.name !== 'Unknown' && (best.probability || 0) > 0.8) {
+            displayResult(best);
+            addToHistory(best);
+            alert(`✅ Đã nhận diện ${best.name} (${(best.probability * 100).toFixed(1)}%). Cửa đã được mở tự động.`);
+        } else {
+            alert('⚠️ Không khớp database. Hệ thống giữ cửa đóng.');
+        }
+
+        doorbellBtn.disabled = false;
+        doorbellBtn.innerHTML = '<i class="fas fa-bell"></i> Giả lập Chuông Cửa';
+    }
+
+    function requestDoor() {
+        requestDoorBtn.disabled = true;
+        requestDoorBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang gửi...';
+
+        fetch(`${API_BASE}/test_mqtt?cmd=OPEN`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    alert('✅ Đã gửi yêu cầu mở cửa');
+                } else {
+                    alert(`Lỗi: ${data.message || 'Không rõ lỗi'}`);
+                }
+            })
+            .catch(error => {
+                alert(`Lỗi kết nối: ${error.message}`);
+            })
+            .finally(() => {
+                requestDoorBtn.disabled = false;
+                requestDoorBtn.innerHTML = '<i class="fas fa-door-open"></i> Yêu Cầu Mở Cửa';
+            });
+    }
+
+    function sleep(ms) {
+        return new Promise(resolve => setTimeout(resolve, ms));
+    }
+</script>
+{% endblock %}
+

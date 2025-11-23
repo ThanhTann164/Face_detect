@@ -11,3 +11,4 @@ imageio
 flask
 flask-cors
 paho-mqtt
+flasgger
